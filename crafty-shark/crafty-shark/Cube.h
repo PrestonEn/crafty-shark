@@ -25,20 +25,29 @@
 class Cube:public Shape{
 
 public:
-	Cube::Cube(Position& spawn, ForceVector& vF,float w, int h);
+	Cube::Cube(Position& spawn, ForceVector& vF, float w, int h, float g);
 
 	///
 	void Cube::drawShape(float drag, float gravity);
 
 private:
+
+
 	float _w;
-	int _h;
+
+	void Cube::applyGravity(float g);
+
 };
 
-Cube::Cube(Position& spawn, ForceVector& vF, float w, int h){
+Cube::Cube(Position& spawn, ForceVector& vF, float w, int h, float g){
 	pos = spawn;
 	actingForces = vF;
+	grav = g;
 	_w = w;
+}
+
+void Cube::applyGravity(float g){
+	std::get<1>(actingForces) = std::get<1>(actingForces)-g;
 }
 
 void Cube::drawShape(float drag, float gravity){
@@ -81,7 +90,8 @@ void Cube::drawShape(float drag, float gravity){
 	glFlush();
 	glTranslatef(-1*std::get<0>(pos), -1*std::get<1>(pos), -1*std::get<2>(pos));
 
-	//update velocity based on parameters like drag
+	//apply gravity
+	this->applyGravity(grav);
 
 	//update position based on the current velocity
 	this->pos = std::make_tuple(std::get<0>(pos) + std::get<0>(actingForces), 

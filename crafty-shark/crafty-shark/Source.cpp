@@ -1,11 +1,6 @@
-/* An example of how to read an image (img.tif) from file using freeimage and then
-display that image using openGL's drawPixelCommand. Also allow the image to be saved
-to backup.tif with freeimage and a simple thresholding filter to be applied to the image.
-Conversion by Lee Rozema.
-Added triangle draw routine, fixed memory leak and improved performance by Robert Flack (2008)
-*/
-
 #include <iostream>
+#include <vector>
+
 #include <malloc.h>
 #include <freeglut.h>
 #include <FreeImage.h>
@@ -15,7 +10,12 @@ Added triangle draw routine, fixed memory leak and improved performance by Rober
 #include "Shape.h"
 #include "Cube.h"
 
-#define SPACEBAR 32
+enum keys {
+	SPACEBAR = 32
+};
+
+
+
 
 Position posV = std::make_tuple(50.0f, 5.0f, +50.0f);
 
@@ -25,8 +25,8 @@ float angle = 0.0f;
 float yangle = 0.0f;
 // actual vector representing the camera's direction
 float lx = 0.2f, ly = 0.0f, lz = 0.2f;
-ForceVector fV = std::make_tuple(2*lx, 0, 2*lz);
-Cube ccube = Cube(posV, fV, 0.2, 1);
+ForceVector fV = std::make_tuple(4*lx, 0.0, 4*lz);
+Cube ccube = Cube(posV, fV, 0.2, 1, 0.001);
 // XZ position of the camera
 float x = 50.0f, y = 5.0f, z = 50.0f;
 
@@ -67,68 +67,8 @@ void computePos(float deltaMove) {
 	//TODO
 }
 
-void drawCube() {
-	// Draw Body
-	glTranslatef(100.0f, 0.0f, 10.0f);
-	glBegin(GL_POLYGON);
-	glColor3f(1.0f, 0.0f, 0.0f);
-	glVertex3f(-0.500000, -0.500000, 0.500000);
-	glVertex3f(0.500000, -0.500000, 0.500000);
-	glVertex3f(0.500000, 0.500000, 0.500000);
-	glVertex3f(-0.500000, 0.500000, 0.500000);
-	glEnd();
-
-	glBegin(GL_POLYGON);
-	glColor3f(1.0f, 1.0f, 1.0f);
-
-	glVertex3f(-0.500000, 0.500000, 0.500000);
-	glVertex3f(0.500000, 0.500000, 0.500000);
-	glVertex3f(0.500000, 0.500000, -0.500000);
-	glVertex3f(-0.500000, -0.500000, -0.500000);
-	glEnd();
-
-	glBegin(GL_POLYGON);
-	glColor3f(1.0f, 1.0f, 1.0f);
-
-	glVertex3f(-0.500000, 0.500000, -0.500000);
-	glVertex3f(0.500000, 0.500000, -0.500000);
-	glVertex3f(0.500000, -0.500000, -0.500000);
-	glVertex3f(-0.500000, -0.500000, -0.500000);
-	glEnd();
-
-	glBegin(GL_POLYGON);
-	glColor3f(1.0f, 1.0f, 1.0f);
-
-	glVertex3f(-0.500000, -0.500000, -0.500000);
-	glVertex3f(0.500000, -0.500000, -0.500000);
-	glVertex3f(0.500000, -0.500000, 0.500000);
-	glVertex3f(-0.500000, -0.500000, 0.500000);
-	glEnd();
-
-	glBegin(GL_POLYGON);
-	glColor3f(1.0f, 1.0f, 1.0f);
-
-	glVertex3f(0.500000, -0.500000, 0.500000);
-	glVertex3f(0.500000, -0.500000, -0.500000);
-	glVertex3f(0.500000, 0.500000, -0.500000);
-	glVertex3f(0.500000, 0.500000, 0.500000);
-	glEnd();
-
-	glBegin(GL_POLYGON);
-	glColor3f(1.0f, 1.0f, 1.0f);
-
-	glVertex3f(-0.500000, -0.500000, -0.500000);
-	glVertex3f(-0.500000, -0.500000, 0.500000);
-	glVertex3f(-0.500000, 0.500000, 0.500000);
-	glVertex3f(-0.500000, 0.500000, -0.500000);
-	glEnd();
-	glFlush();
-}
-
 
 void renderScene(void) {
-
-
 	glPointSize(10);
 	glBegin(GL_POINT);
 	glColor3f(1.0, 0, 0);
@@ -148,15 +88,15 @@ void renderScene(void) {
 			  0.0f, 1.0f, 0.0f);		
 
 	// Draw ground
-	glColor3f(0.9f, 0.9f, 0.9f);
-	glBegin(GL_LINES);
-	for (int i = 0; i < 11; i++){
-		glVertex3f(i*10.0f, 0.0f, 0.0f);
-		glVertex3f(i*10.0f, 0.0f, 100.0f);
-		glVertex3f(100.0f, 0.0f, i*10.0f);
-		glVertex3f(0.0f, 0.0f, i*10.0f);
-	}
-	glEnd();
+	//glColor3f(0.9f, 0.9f, 0.9f);
+	//glBegin(GL_LINES);
+	//for (int i = 0; i < 11; i++){
+	//	glVertex3f(i*10.0f, 0.0f, 0.0f);
+	//	glVertex3f(i*10.0f, 0.0f, 100.0f);
+	//	glVertex3f(100.0f, 0.0f, i*10.0f);
+	//	glVertex3f(0.0f, 0.0f, i*10.0f);
+	//}
+	//glEnd();
 
 
 	//glTranslatef(100.0f, 0.0f, 10.0f);
@@ -202,7 +142,6 @@ void releaseKey(int key, int x, int y) {
 void mouseMove(int x, int y) {
 	// this will only be true when the left button is down
 	if (xOrigin >= 0) {
-
 		// update deltaAngle
 		deltaAngle = (x - xOrigin) * 0.001f;
 		ydeltaAngle = (y - yOrigin) * -0.001f;
@@ -243,8 +182,7 @@ void joystickFunction(unsigned int buttonMask, int x, int y, int z){
 	lz = -cos(angle + deltaAngle);
 
 	if (buttonMask & GLUT_JOYSTICK_BUTTON_A) {
-		ForceVector fV = std::make_tuple(2 * lx, ly, 2 * lz);
-		ccube = Cube(posV, fV, 0.2, 1);
+
 	}
 	if (buttonMask & GLUT_JOYSTICK_BUTTON_B) {
 		printf("button B is pressed ");

@@ -56,22 +56,21 @@ protected:
 	///{x, y, z} position
 	Position pos;
 
-	/***********************************/
-	//	Removed; doing raw vertexes in //
-	//	draw method. Update to use	   //	//vertexs for rendering
-	//	drawArray?					   //	//std::vector<GLint> vertexs;
-	/***********************************/
+	///
+	ForceVector direction;
 
 	///{vx, vy, vz}
 	ForceVector actingForces;
 	
 	float b_sphere_radius;
 
+	float grav;
+
+
 private:
 
 	///if true, allow to be destroyed after some number of epocs
 	bool timed_life;
-	
 	///how long has the object existed?
 	int epocs_alive;
 
