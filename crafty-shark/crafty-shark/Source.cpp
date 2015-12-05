@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <ctime>
 
 #include <malloc.h>
 #include <freeglut.h>
@@ -14,10 +15,14 @@ enum keys {
 	SPACEBAR = 32
 };
 
+GLfloat light_ambient[] = { 0.0, 0.0, 0.0, 1.0 };
+GLfloat light_diffuse[] = { 0.9, 0.5, 0.3, 1.0 };
+GLfloat light_specular[] = { 0.9, 0.1, 0.1, 1.0 };
+GLfloat light_position[] = { 7.0, 6.0, 1.0, 0.0 };
 
 
-
-Position posV = std::make_tuple(50.0f, 5.0f, +50.0f);
+std::vector<Cube*> activeShapes;
+bool semi_auto = true;
 
 
 // angle of rotation for the camera direction
@@ -25,10 +30,8 @@ float angle = 0.0f;
 float yangle = 0.0f;
 // actual vector representing the camera's direction
 float lx = 0.2f, ly = 0.0f, lz = 0.2f;
-ForceVector fV = std::make_tuple(4*lx, 0.0, 4*lz);
-Cube ccube = Cube(posV, fV, 0.2, 1, 0.001);
 // XZ position of the camera
-float x = 50.0f, y = 5.0f, z = 50.0f;
+float px = 50.0f, py = 5.0f, pz = 50.0f;
 
 // the key states. These variables will be zero
 //when no key is being presses
@@ -62,14 +65,21 @@ void changeSize(int w, int h) {
  * 
  */
 void computePos(float deltaMove) {
-	x += deltaMove * lx * 0.1f;
-	z += deltaMove * lz * 0.1f;
+	px += deltaMove * lx * 0.1f;
+	pz += deltaMove * lz * 0.1f;
 	//TODO
 }
 
 
 void renderScene(void) {
-	glPointSize(10);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+	glEnable(GL_LIGHTING);   /* turns on lighting */
+	glEnable(GL_LIGHT0);     /* turns on light 0  */
+
+	glPointSize(1);
 	glBegin(GL_POINT);
 	glColor3f(1.0, 0, 0);
 	glVertex3f(0, 0, 0);
@@ -83,20 +93,22 @@ void renderScene(void) {
 	glLoadIdentity();
 	// Set the camera
 	//glPushMatrix();
-	gluLookAt(x, y, z,					//eye position
-			  x + lx, y + ly, z + lz,	//direction
+	gluLookAt(px, py, pz,					//eye position
+			  px + lx, py + ly, pz + lz,	//direction
 			  0.0f, 1.0f, 0.0f);		
 
 	// Draw ground
-	//glColor3f(0.9f, 0.9f, 0.9f);
-	//glBegin(GL_LINES);
-	//for (int i = 0; i < 11; i++){
-	//	glVertex3f(i*10.0f, 0.0f, 0.0f);
-	//	glVertex3f(i*10.0f, 0.0f, 100.0f);
-	//	glVertex3f(100.0f, 0.0f, i*10.0f);
-	//	glVertex3f(0.0f, 0.0f, i*10.0f);
-	//}
-	//glEnd();
+	glColor3f(0.9f, 0.9f, 0.9f);
+	glBegin(GL_LINES);
+	for (int i = 0; i < 11; i++){
+		glVertex3f(i*10.0f, 0.0f, 0.0f);
+		glVertex3f(i*10.0f, 0.0f, 100.0f);
+		glVertex3f(100.0f, 0.0f, i*10.0f);
+		glVertex3f(0.0f, 0.0f, i*10.0f);
+	}
+	glVertex3f(px-0.3, py, pz);
+	glVertex3f(px + 100 * lx, (py - 0.5f) + 100*ly, pz + 100 *lz);
+	glEnd();
 
 
 	//glTranslatef(100.0f, 0.0f, 10.0f);
@@ -104,9 +116,11 @@ void renderScene(void) {
 	//obangle += 2.0f;
 	//glRotatef(obangle, 0.0f, 1.0f, 0.0f); //rotating object continuously by 2 degree
 	//glTranslatef(-100.0f, 0.0f, -10.0f);
-	ccube.drawShape(0, 0);
 
 	glPopMatrix();
+	for (Cube* shape : activeShapes){
+		shape->drawShape();
+	}
 
 	glutSwapBuffers();
 }
@@ -117,16 +131,13 @@ void processNormalKeys(unsigned char key, int xx, int yy) {
 }
 
 void pressKey(int key, int xx, int yy) {
-	std::cout << key << std::endl;
 	switch (key) {
 	case GLUT_KEY_UP: deltaMove = 7.0f; break;
 	case GLUT_KEY_LEFT: 
-		y = y + 1.5f; 
-		printf("JUMP\n");
+		py = py + 1.5f; 
 		break;
 	case GLUT_KEY_DOWN: deltaMove = -1.0f; break;
 	default:
-		printf("%d\n", key);
 		break;
 	}
 }
@@ -147,7 +158,7 @@ void mouseMove(int x, int y) {
 		ydeltaAngle = (y - yOrigin) * -0.001f;
 		// update camera's direction
 		lx = sin(angle + deltaAngle);
-		ly = sin(yangle + ((y - yOrigin) * 0.001f));
+		ly = sin(yangle + ydeltaAngle);
 		lz = -cos(angle + deltaAngle);
 	}
 }
@@ -156,6 +167,10 @@ void mouseButton(int button, int state, int x, int y) {
 
 	// only start motion if the left button is pressed
 	if (button == GLUT_LEFT_BUTTON) {
+
+		activeShapes.push_back(new Cube(std::make_tuple(px, py, pz),
+										std::make_tuple(4 * lx, 4 * ly , 4 * lz), 
+										0.2, 1, 0.001));
 
 		// when the button is released
 		if (state == GLUT_UP) {
@@ -172,8 +187,7 @@ void mouseButton(int button, int state, int x, int y) {
 }
 
 void joystickFunction(unsigned int buttonMask, int x, int y, int z){
-	std::cout << x << "\t" << y << "\t" << z << "\n";
-
+	if (!(buttonMask & GLUT_JOYSTICK_BUTTON_B)) semi_auto = true;
 	deltaAngle = (x - xOrigin) * 0.001f;
 	ydeltaAngle = (y - yOrigin) * -0.001f;
 	// update camera's direction
@@ -182,9 +196,18 @@ void joystickFunction(unsigned int buttonMask, int x, int y, int z){
 	lz = -cos(angle + deltaAngle);
 
 	if (buttonMask & GLUT_JOYSTICK_BUTTON_A) {
-
+		activeShapes.push_back(new Cube(std::make_tuple(px, py, pz),
+			std::make_tuple(lx, ly, lz),
+			0.2, 1, 0.001));
 	}
 	if (buttonMask & GLUT_JOYSTICK_BUTTON_B) {
+		if (semi_auto){
+			activeShapes.push_back(new Cube(std::make_tuple(px, py, pz),
+				std::make_tuple(lx, ly, lz),
+				0.2, 1, 0.001));
+
+			semi_auto = false;
+		}
 		printf("button B is pressed ");
 	}
 	if (buttonMask & GLUT_JOYSTICK_BUTTON_C) {

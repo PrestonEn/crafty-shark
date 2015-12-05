@@ -28,7 +28,7 @@ public:
 	Cube::Cube(Position& spawn, ForceVector& vF, float w, int h, float g);
 
 	///
-	void Cube::drawShape(float drag, float gravity);
+	void Cube::drawShape();
 
 private:
 
@@ -48,9 +48,13 @@ Cube::Cube(Position& spawn, ForceVector& vF, float w, int h, float g){
 
 void Cube::applyGravity(float g){
 	std::get<1>(actingForces) = std::get<1>(actingForces)-g;
+	if (std::get<1>(pos) <= 0){
+		std::get<1>(actingForces) = std::get<1>(actingForces)*-1;
+	}
 }
 
-void Cube::drawShape(float drag, float gravity){
+void Cube::drawShape(){
+
 	glTranslatef(std::get<0>(pos), std::get<1>(pos), std::get<2>(pos));
 	glBegin(GL_QUADS);
 	

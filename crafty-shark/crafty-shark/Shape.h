@@ -50,7 +50,7 @@ public:
 	 *	update shapes position, check for collision, apply transformations
 	 *
 	 */
-	void Shape::drawShape();
+	 void Shape::drawShape();
 
 protected:
 	///{x, y, z} position
