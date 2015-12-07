@@ -28,6 +28,7 @@ float yangle = 0.0f;
 //when no key is being presses
 float deltaAngle = 0.0f;
 float deltaMove = 0;
+float zdeltaMove = 0;
 float ydeltaAngle = 0.0f;
 int xOrigin = -1;
 int yOrigin = -1;
@@ -73,7 +74,7 @@ void changeSize(int w, int h) {
 void computePos(float deltaMove) {
 	std::get<0>(sim.fps_pos) += deltaMove * std::get<0>(sim.fps_dir) * 0.1f;
 	std::get<2>(sim.fps_pos) += deltaMove * std::get<2>(sim.fps_dir) * 0.1f;
-	std::cout << std::get<0>(sim.fps_pos) << " " << std::get<2>(sim.fps_pos) << std::endl;
+
 }
 
 
@@ -85,7 +86,6 @@ std::tuple<float, float, float> normalize(std::tuple<float, float, float> v){
 
 void renderScene(void) {
 	if (deltaMove)
-		std::cout << "delta" << std::endl;
 		computePos(deltaMove);
 
 	// Clear Color and Depth Buffers
@@ -99,14 +99,14 @@ void renderScene(void) {
 			  std::get<0>(sim.fps_pos) + std::get<0>(sim.fps_dir), std::get<1>(sim.fps_pos) + std::get<1>(sim.fps_dir), std::get<2>(sim.fps_pos) + std::get<2>(sim.fps_dir),	//direction
 			  0.0f, 1.0f, 0.0f);
 
-	//if (rotate){
-	//	obangle += 0.002f;
-	//	glTranslated(50.0, 0.0, 50.0);
-	//	glRotatef(obangle, 0.0f, 1.0f, 0.0f); //rotating object continuously by 2 degree
-	//	glTranslated(-50, 0.0, -50);
-	//}
+	if (rotate){
+		obangle += 0.002f;
+		glTranslated(50.0, 0.0, 50.0);
+		glRotatef(obangle, 0.0f, 1.0f, 0.0f); //rotating object continuously by 2 degree
+		glTranslated(-50, 0.0, -50);
+	}
 
-	sim.terrain->draw();
+	//sim.terrain->draw();
 
 	for (Cube* cube : activeShapes){
 		cube->drawShape(1);
@@ -125,16 +125,15 @@ void processNormalKeys(unsigned char key, int xx, int yy) {
 
 void pressKey(int key, int xx, int yy) {
 	switch (key) {
-	case GLUT_KEY_UP: deltaMove = 0.10f; break;
+	case GLUT_KEY_UP: deltaMove = 1.0f; break;
 	case GLUT_KEY_LEFT: 
 
 		break;
 
 	case GLUT_KEY_RIGHT:
 		break;
-	case GLUT_KEY_DOWN: deltaMove = -0.10f; break;
+	case GLUT_KEY_DOWN: deltaMove = -1.0f; break;
 	default:
-		std::cout << key << std::endl;
 		break;
 	}
 }
@@ -157,16 +156,12 @@ void mouseMove(int x, int y) {
 		std::get<0>(sim.fps_dir) = sin(angle + deltaAngle);
 		std::get<1>(sim.fps_dir) = sin(yangle + ydeltaAngle);
 		std::get<2>(sim.fps_dir) = -cos(angle + deltaAngle);
-		std::cout << "angle: " << std::get<0>(sim.fps_dir) << " " << std::get<1>(sim.fps_dir) << " " << std::get<2>(sim.fps_dir) << std::endl;
 	}
 }
 
 void mouseButton(int button, int state, int x, int y) {
-
 	// only start motion if the left button is pressed
 	if (button == GLUT_LEFT_BUTTON) {
-		//count_active++;
-		
 
 		// when the button is released
 		if (state == GLUT_UP) {
@@ -181,6 +176,7 @@ void mouseButton(int button, int state, int x, int y) {
 		}
 	}
 }
+
 
 float randomFloat(float a, float b) {
 	float random = ((float)rand()) / (float)RAND_MAX;
@@ -199,14 +195,10 @@ void joystickFunction(unsigned int buttonMask, int x, int y, int z){
 	std::get<1>(sim.fps_dir) = sin(yangle + ydeltaAngle);
 	std::get<2>(sim.fps_dir) = -cos(angle + deltaAngle);
 
-	std::cout << std::get<0>(sim.fps_dir) << std::endl;
-
-
 	if (buttonMask & GLUT_JOYSTICK_BUTTON_A) {
-		std::cout << std::get<0>(sim.fps_pos);
 		activeShapes.push_back(new Cube(sim.fps_pos,
 			normalize(sim.fps_dir),
-			0.01f, 0.10f));
+			0.01f, 1.0f));
 
 	}
 
@@ -225,7 +217,7 @@ int main(int argc, char **argv) {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
 	glutInitWindowSize(900, 600);
-	glutCreateWindow("ROTATING");
+	glutCreateWindow("PEW PEW");
 	//glutFullScreen();
 	//register callbacks
 	glutDisplayFunc(renderScene);
@@ -241,15 +233,13 @@ int main(int argc, char **argv) {
 	glutSpecialFunc(pressKey);
 	glutSpecialUpFunc(releaseKey);
 
-	// here are the two new functions
 	//glutMouseFunc(mouseButton);
 	//glutMotionFunc(mouseMove);
 	glutJoystickFunc(joystickFunction, 10);
-	// OpenGL init
 	glEnable(GL_DEPTH_TEST);
 
 	// enter GLUT event processing cycle
 	glutMainLoop();
 
-	return 11111111111111111111;
+	return 0;
 }

@@ -1,17 +1,22 @@
 #include "Terrain.h"
 #include <freeglut.h>
-#include <FreeImage.h>
-
 
 Terrain::Terrain():
 width(100), height(100){
 	indicies = new int[width*height];
 }
 
+
+Terrain::Terrain(int w, int h) :
+width(w), height(h){
+	indicies = new int[width*height];
+}
+
+
+///<summary>render the terrain as a series of triangle strips</summary>
+///
 void Terrain::draw(){
 	bool evodd = true;
-	//for (int i = 0; i < 10; i++){
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	for (int strip = 0; strip < height; strip++){
 		glBegin(GL_TRIANGLE_STRIP);
 		glVertex3i(0, 0, strip);    
@@ -33,9 +38,4 @@ void Terrain::draw(){
 		}
 		glEnd();
 	}
-
-
-
-
-
 }

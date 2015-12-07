@@ -5,18 +5,13 @@ enum drawType { SOLID, VERTEX, WIRE };
 
 enum viewMode { FIRST_PERSON, OVERHEAD };
 
-enum fireMode { SEMI, AUTO, FOUNTAIN, SPRAY };
+enum fireMode { SEMI, AUTO, SPRAY };
 
 enum keys {
 	SPACEBAR = 32
 };
 
-///<summary>
-///
-///
-///
-///
-///
+
 class SimState{
 
 public:
@@ -29,10 +24,11 @@ public:
 
 	std::tuple<float, float, float> fountain_position;
 	std::tuple<float, float, float> fountain_direction;
+	std::tuple<float, float, float> overhead_pos;
+
+	std::tuple<float, float, float> overhead_angle;
+	std::tuple<float, float, float> scene_rotation;
 	std::tuple<float, float, float> fps_pos;
 	std::tuple<float, float, float> fps_dir;
 	Terrain *terrain;
-
-	void updateFPSPos(float x, float y, float z);
-	void updateFPSDir(float x, float y, float z);
 };

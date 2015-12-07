@@ -1,15 +1,9 @@
 /**
  *	\class		Cube
  *
- *	\ingroup	shapes
  *
- *	\brief		Class holding a cubes position for use in BSP-tree 
- *
- *	A cube is represented by its midpoint, width and height. 
- *	The radius of th bounding sphere is equivalent to half
- *	the width of the cube 
- *
- *  \note		NOTE MAY BE MODIFIED IN THE INTEREST OF IMPROVING VISUALS
+ *	\brief		ITS A CUBE
+
  *	
  *	\note		cubes are neat
  *
@@ -23,7 +17,7 @@
 #include <malloc.h>
 #include <freeglut.h>
 #include <FreeImage.h>
-
+#include "Terrain.h"
 class Cube{
 
 public:
@@ -42,9 +36,13 @@ private:
 
 	std::tuple<float, float, float> rotation;
 
+	std::tuple<float, float, float> rotation_update_values;
+
 	float speed;
 
 	float gravity;
+
+	float w;
 
 	int time_alive;
 
