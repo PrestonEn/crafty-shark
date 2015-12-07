@@ -23,14 +23,15 @@ class Terrain{
 public:
 	Terrain::Terrain();
 	Terrain::Terrain(int width, int height);
-	void Terrain::draw();
+	void Terrain::draw(bool hole);
 	//Terrain::Terrain(); takes in a bitmap?
+	int* indicies;
+	float* points;
 
 private:
 	const int width;
 	const int height;
-	int* indicies;
-	float* points;
+
 	
 };
 

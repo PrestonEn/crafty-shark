@@ -5,25 +5,36 @@
 #include <malloc.h>
 #include <freeglut.h>
 #include <FreeImage.h>
-
+#include <MMSystem.h>
 #include <stdlib.h>
 #include <math.h>
 #include "Cube.h"
 #include "SimState.h"
 
 
+float randomFloat(float a, float b) {
+	float random = ((float)rand()) / (float)RAND_MAX;
+	float diff = b - a;
+	float r = random * diff;
+	return a + r;
+}
 
 
-SimState sim = SimState(WIRE, FIRST_PERSON, 0.5f);
+SimState* sim = new SimState(SOLID, FIRST_PERSON, 0.01f, 1.0f, true);
+std::list<Cube*> activeShapes;
+
+int shots_fired = 0;
 
 float obangle = 0.0f;
+float spin_factor = 0.0f;
 bool rotate = true;
 int xsum = 0;
-std::list<Cube*> activeShapes;
 bool semi_auto = true;
+
 // angle of rotation for the camera direction
 float angle = 0.0f;
 float yangle = 0.0f;
+
 // the key states. These variables will be zero
 //when no key is being presses
 float deltaAngle = 0.0f;
@@ -34,19 +45,13 @@ int xOrigin = -1;
 int yOrigin = -1;
 
 
-
-
-void displayText(float x, float y, int r, int g, int b, const char *string) {
-	glLoadIdentity();
-	int j = strlen(string);
-
-	glColor3f(r, g, b);
-	glRasterPos2f(x, y);
-	for (int i = 0; i < j; i++) {
-		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, string[i]);
-	}
-}
-
+//
+//
+//
+std::tuple<float, float, float>& particle_start_pos = sim->fps_pos;
+std::tuple<float, float, float>& particle_start_dir = sim->fps_dir;
+std::tuple<float, float, float>& camera_pos = sim->fps_pos;
+std::tuple<float, float, float>& camera_dir = sim->fps_dir;
 
 void changeSize(int w, int h) {
 	// Prevent a divide by zero, when window is too short
@@ -72,8 +77,8 @@ void changeSize(int w, int h) {
  * 
  */
 void computePos(float deltaMove) {
-	std::get<0>(sim.fps_pos) += deltaMove * std::get<0>(sim.fps_dir) * 0.1f;
-	std::get<2>(sim.fps_pos) += deltaMove * std::get<2>(sim.fps_dir) * 0.1f;
+	std::get<0>(sim->fps_pos) += deltaMove * std::get<0>(sim->fps_dir) * 0.1f;
+	std::get<2>(sim->fps_pos) += deltaMove * std::get<2>(sim->fps_dir) * 0.1f;
 
 }
 
@@ -83,6 +88,14 @@ std::tuple<float, float, float> normalize(std::tuple<float, float, float> v){
 	return std::make_tuple(std::get<0>(v) / len, std::get<1>(v) / len, std::get<2>(v) / len);
 }
 
+std::tuple<float, float, float> addSpray(std::tuple<float, float, float> v, float spray){
+	return std::make_tuple(std::get<0>(v) +randomFloat(-1 * spray, spray),
+		std::get<1>(v) +randomFloat(-1 * spray, spray),
+		std::get<2>(v) +randomFloat(-1 * spray, spray));
+}
+
+
+
 
 void renderScene(void) {
 	if (deltaMove)
@@ -90,38 +103,67 @@ void renderScene(void) {
 
 	// Clear Color and Depth Buffers
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	if (sim->draw_type ==SOLID)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	if (sim->draw_type == VERTEX)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+	if (sim->draw_type == WIRE)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	// Reset transformations
 	
 	glLoadIdentity();
 	// Set the camera
 	//glPushMatrix();
-	gluLookAt(std::get<0>(sim.fps_pos), std::get<1>(sim.fps_pos), std::get<2>(sim.fps_pos),					//eye position
-			  std::get<0>(sim.fps_pos) + std::get<0>(sim.fps_dir), std::get<1>(sim.fps_pos) + std::get<1>(sim.fps_dir), std::get<2>(sim.fps_pos) + std::get<2>(sim.fps_dir),	//direction
+	gluLookAt(std::get<0>(camera_pos), std::get<1>(camera_pos), std::get<2>(camera_pos),					//eye position
+		std::get<0>(camera_pos) +std::get<0>(camera_dir), std::get<1>(camera_pos) +std::get<1>(camera_dir), std::get<2>(camera_pos) +std::get<2>(camera_dir),	//direction
 			  0.0f, 1.0f, 0.0f);
 
 	if (rotate){
-		obangle += 0.002f;
-		glTranslated(50.0, 0.0, 50.0);
+		obangle += spin_factor;
+		glTranslated(100.0, 0.0, 100.0);
 		glRotatef(obangle, 0.0f, 1.0f, 0.0f); //rotating object continuously by 2 degree
-		glTranslated(-50, 0.0, -50);
+		glTranslated(-100, 0.0, -100);
 	}
 
-	//sim.terrain->draw();
+	sim->terrain->draw(false);
 
-	for (Cube* cube : activeShapes){
-		cube->drawShape(1);
+	auto itr = std::begin(activeShapes);
+	while (itr != std::end(activeShapes)){
+		(*itr)->drawShape(1);
+		if ((*itr)->isStrike()){
+			for (int i = 0; i < 10; i++){
+
+				std::get<1>((*itr)->pos) = std::get<1>((*itr)->pos) + 0.1;
+				activeShapes.push_back(new Cube((*itr)->pos,
+					normalize(std::make_tuple(randomFloat(-1, 1),
+					randomFloat(0, 1), randomFloat(-1, 1))),
+					0,
+					randomFloat(0.001, 0.01), 0.1, 400, true, sim));
+			}
+		}
+		if ((*itr)->isKill() == IMPACT || (*itr)->isKill() == TIME){
+			if ((*itr)->is_expl == false && (*itr)->isKill() == TIME){
+				PlaySound(NULL, 0, SND_ASYNC);
+				PlaySound(TEXT("peh.wav"), 0, SND_FILENAME | SND_ASYNC); // Play sound
+				for (int i = 0; i < 10; i++){
+
+					std::get<1>((*itr)->pos) = std::get<1>((*itr)->pos) + 0.1;
+					activeShapes.push_back(new Cube((*itr)->pos, 
+						normalize(std::make_tuple(randomFloat(-1, 1), 
+						randomFloat(0, 1), randomFloat(-1, 1))), 
+						0, 
+						randomFloat(0.001, 0.01), 0.1, 800, true, sim));
+				}
+			}
+			itr = activeShapes.erase(itr);
+		}
+		else ++itr;
 	}
 
 	glutSwapBuffers();
 }
 
-void processNormalKeys(unsigned char key, int xx, int yy) {
-	if (key == 27)
-		exit(0);
-	if (key == 'f'){
-		rotate = false;
-	}
-}
 
 void pressKey(int key, int xx, int yy) {
 	switch (key) {
@@ -153,9 +195,9 @@ void mouseMove(int x, int y) {
 		ydeltaAngle = (y - yOrigin) * -0.001f;
 
 		// update camera's direction
-		std::get<0>(sim.fps_dir) = sin(angle + deltaAngle);
-		std::get<1>(sim.fps_dir) = sin(yangle + ydeltaAngle);
-		std::get<2>(sim.fps_dir) = -cos(angle + deltaAngle);
+		std::get<0>(sim->fps_dir) = sin(angle + deltaAngle);
+		std::get<1>(sim->fps_dir) = sin(yangle + ydeltaAngle);
+		std::get<2>(sim->fps_dir) = -cos(angle + deltaAngle);
 	}
 }
 
@@ -178,39 +220,118 @@ void mouseButton(int button, int state, int x, int y) {
 }
 
 
-float randomFloat(float a, float b) {
-	float random = ((float)rand()) / (float)RAND_MAX;
-	float diff = b - a;
-	float r = random * diff;
-	return a + r;
-}
+
 
 void joystickFunction(unsigned int buttonMask, int x, int y, int z){
+	
 	if (!(buttonMask & GLUT_JOYSTICK_BUTTON_B)) semi_auto = true;
 	xsum = xsum + x/100;
 	deltaAngle = (xsum) * 0.001f;
 	ydeltaAngle = (0 - y) * -0.001f;
-
-	std::get<0>(sim.fps_dir) = sin(angle + deltaAngle);
-	std::get<1>(sim.fps_dir) = sin(yangle + ydeltaAngle);
-	std::get<2>(sim.fps_dir) = -cos(angle + deltaAngle);
-
+	if (sim->view_mode != OVERHEAD){
+		std::get<0>(sim->fps_dir) = sin(angle + deltaAngle);
+		std::get<1>(sim->fps_dir) = sin(yangle + ydeltaAngle);
+		std::get<2>(sim->fps_dir) = -cos(angle + deltaAngle);
+	}
+	//std::cout << std::get<0>(sim->fps_dir) << " " << std::get<1>(sim->fps_dir) << " " << std::get<2>(sim->fps_dir) << std::endl;
 	if (buttonMask & GLUT_JOYSTICK_BUTTON_A) {
-		activeShapes.push_back(new Cube(sim.fps_pos,
-			normalize(sim.fps_dir),
-			0.01f, 1.0f));
+		if (shots_fired > 0){ --shots_fired; }
+		else{
 
+			shots_fired = 10;
+			activeShapes.push_back(new Cube(particle_start_pos,
+				normalize(addSpray(particle_start_dir, sim->spray)),
+				sim->gravity, sim->speed, 0.2, 2000, false, sim));
+	
+
+		}
 	}
 
 	if (buttonMask & GLUT_JOYSTICK_BUTTON_B) {
 		if (semi_auto){
-			activeShapes.push_back(new Cube(std::make_tuple(50.f, 2.0f, 50.f),
-				normalize(std::make_tuple(0.0f, 1.0f, 0.0f)),
-				0.05f, 0.2f));
+			activeShapes.push_back(new Cube(particle_start_pos,
+				normalize(addSpray(particle_start_dir, sim->spray)),
+				sim->gravity, sim->speed, 1.0,2000, false, sim));
 			semi_auto = false;
+
 		}
 	}
 }
+
+void processNormalKeys(unsigned char key, int xx, int yy) {
+	if (key == 27)
+		exit(0);
+	if (key == 'f'){
+		sim->view_mode = OVERHEAD;
+		camera_pos = std::make_tuple(256.98f, 120.5f, 256.899f);
+		camera_dir = std::make_tuple(-0.770101f, -0.343837f, -0.637922f);
+
+
+		rotate = true;
+	}
+	if (key == 'p'){
+		sim->view_mode = FIRST_PERSON;
+		glutJoystickFunc(joystickFunction, 20);
+
+		camera_pos = sim->fps_pos = std::make_tuple(50.0f, 2.0f, 50.0f);
+		camera_dir = sim->fps_dir = std::make_tuple(0.0f, 0.0f, 0.0f);
+
+		particle_start_pos = sim->fps_pos;
+		particle_start_dir = sim->fps_dir;
+
+		rotate = false;
+	}
+
+	if (key == '+'){
+		sim->spray += 0.01;
+	}
+
+	if (key == '-'){
+		sim->spray -= 0.01;
+	}
+
+	if (key == 'a'){
+		activeShapes.push_back(new Cube(particle_start_pos,
+			normalize(addSpray(particle_start_dir, sim->spray)),
+			0.001, 0.5, 1, 2000, false, sim));
+	}
+
+	if (key == '['){
+		spin_factor -= 0.02f;
+	}
+
+	if (key == ']'){
+		spin_factor += 0.02f;
+	}
+	
+	if (key == '9'){
+		sim->friction -= 0.02f;
+	}
+
+	if (key == '0'){
+		sim->friction += 0.02f;
+	}
+
+
+	if (key == ']'){
+		spin_factor += 0.02f;
+	}
+
+	if (key == 'r'){
+		sim = new SimState(WIRE, FIRST_PERSON, 0.5f, 1.0f, true);
+	}
+	if (key == '1'){
+		sim->draw_type = SOLID;
+	}
+	if (key == '2'){
+		sim->draw_type = VERTEX;
+	}
+	if (key == '3'){
+		sim->draw_type = WIRE;
+	}
+}
+
+
 
 int main(int argc, char **argv) {
 	// init GLUT and create window
@@ -235,7 +356,7 @@ int main(int argc, char **argv) {
 
 	//glutMouseFunc(mouseButton);
 	//glutMotionFunc(mouseMove);
-	glutJoystickFunc(joystickFunction, 10);
+	glutJoystickFunc(joystickFunction, 20);
 	glEnable(GL_DEPTH_TEST);
 
 	// enter GLUT event processing cycle

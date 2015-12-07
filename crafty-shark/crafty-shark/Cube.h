@@ -13,24 +13,29 @@
 
 #ifndef _CUBE_H_
 #define _CUBE_H_
+
 #include <tuple>
 #include <malloc.h>
 #include <freeglut.h>
 #include <FreeImage.h>
 #include "Terrain.h"
+#include "SimState.h"
+
+enum cause_of_death{ IM_OKAY, IMPACT, TIME };
+
 class Cube{
 
 public:
 	
-	Cube::Cube(std::tuple<float, float, float>& spawn, std::tuple<float, float, float>& direction, float w, float speed);
-	
-	bool checkVitals();
-	
+	Cube::Cube(std::tuple<float, float, float>& spawn, std::tuple<float, float, float>& direction, float grav, float speed, float w, int life, bool is_expl, SimState* s);
+	int isKill();
 	void Cube::drawShape(int dTypeFlag);
-
+	std::tuple<float, float, float> pos;
+	bool Cube::isStrike();
+	bool is_expl;
 private:
 
-	std::tuple<float, float, float> pos;
+	SimState* state;
 
 	std::tuple<float, float, float> direction;
 
@@ -45,6 +50,8 @@ private:
 	float w;
 
 	int time_alive;
+
+
 
 };
 
