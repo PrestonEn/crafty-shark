@@ -2,6 +2,9 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="Source.cpp" />
+    <ClCompile Include="Cube.cpp" />
+    <ClCompile Include="Terrain.cpp" />
+    <ClCompile Include="SimState.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Headers">
@@ -12,7 +15,7 @@
     <ClInclude Include="Cube.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Shape.h">
+    <ClInclude Include="SimState.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="Terrain.h">

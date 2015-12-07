@@ -19,88 +19,35 @@
 
 #ifndef _CUBE_H_
 #define _CUBE_H_
+#include <tuple>
+#include <malloc.h>
+#include <freeglut.h>
+#include <FreeImage.h>
 
-#include "Shape.h"
-
-class Cube:public Shape{
+class Cube{
 
 public:
-	Cube::Cube(Position& spawn, ForceVector& vF, float w, int h, float g);
-
-	///
-	void Cube::drawShape();
+	
+	Cube::Cube(std::tuple<float, float, float>& spawn, std::tuple<float, float, float>& direction, float w, float speed);
+	
+	bool checkVitals();
+	
+	void Cube::drawShape(int dTypeFlag);
 
 private:
 
+	std::tuple<float, float, float> pos;
 
-	float _w;
+	std::tuple<float, float, float> direction;
 
-	void Cube::applyGravity(float g);
+	std::tuple<float, float, float> rotation;
+
+	float speed;
+
+	float gravity;
+
+	int time_alive;
 
 };
-
-Cube::Cube(Position& spawn, ForceVector& vF, float w, int h, float g){
-	pos = spawn;
-	actingForces = vF;
-	grav = g;
-	_w = w;
-}
-
-void Cube::applyGravity(float g){
-	std::get<1>(actingForces) = std::get<1>(actingForces)-g;
-	if (std::get<1>(pos) <= 0){
-		std::get<1>(actingForces) = std::get<1>(actingForces)*-1;
-	}
-}
-
-void Cube::drawShape(){
-
-	glTranslatef(std::get<0>(pos), std::get<1>(pos), std::get<2>(pos));
-	glBegin(GL_QUADS);
-	
-	glVertex3f(-_w, -_w, _w);
-	glVertex3f(_w, -_w, _w);
-	glVertex3f(_w, _w, _w);
-
-	glVertex3f(-_w, _w, _w);
-	glVertex3f(-_w, _w, _w);
-	glVertex3f(_w, _w, _w);
-
-	glVertex3f(_w, _w, -_w);
-	glVertex3f(-_w, -_w, -_w);
-	glVertex3f(-_w, _w, -_w);
-
-	glVertex3f(_w, _w, -_w);
-	glVertex3f(_w, -_w, -_w);
-	glVertex3f(-_w, -_w, -_w);
-
-	glVertex3f(-_w, -_w, -_w);
-	glVertex3f(_w, -_w, -_w);
-	glVertex3f(_w, -_w, _w);
-
-	glVertex3f(-_w, -_w, _w);
-	glVertex3f(_w, -_w, _w);
-	glVertex3f(_w, -_w, -_w);
-
-	glVertex3f(_w, _w, -_w);
-	glVertex3f(_w, _w, _w);
-	glVertex3f(-_w, -_w, -_w);
-
-	glVertex3f(-_w, -_w, _w);
-	glVertex3f(-_w, _w, _w);
-	glVertex3f(-_w, _w, -_w);
-
-	glEnd();
-	glFlush();
-	glTranslatef(-1*std::get<0>(pos), -1*std::get<1>(pos), -1*std::get<2>(pos));
-
-	//apply gravity
-	this->applyGravity(grav);
-
-	//update position based on the current velocity
-	this->pos = std::make_tuple(std::get<0>(pos) + std::get<0>(actingForces), 
-								std::get<1>(pos) + std::get<1>(actingForces), 
-								std::get<2>(pos) + std::get<2>(actingForces));
-}
 
 #endif

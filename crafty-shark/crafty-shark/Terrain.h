@@ -1,3 +1,4 @@
+#pragma once
 /**
 *	\class		Terrain
 *
@@ -21,22 +22,16 @@
 class Terrain{
 public:
 	Terrain::Terrain();
-
-	Terrain::Terrain(int width, int height, bool bump);
-
+	Terrain::Terrain(int width, int height);
+	void Terrain::draw();
 	//Terrain::Terrain(); takes in a bitmap?
 
 private:
 	const int width;
-
 	const int height;
-
-	float** points;
+	int* indicies;
+	float* points;
 	
 };
 
-Terrain::Terrain():
-width(100), height(100){
-	points = new float* [width];
-}
 
